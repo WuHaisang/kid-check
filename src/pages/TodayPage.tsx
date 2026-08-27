@@ -6,7 +6,7 @@ import ProgressBar from '../components/ProgressBar';
 import WeekHeatmap from '../components/WeekHeatmap';
 
 export default function TodayPage() {
-  const { tasks, pointLogs, todayStr, todayDow, bonusPoints, completeTask } = useStore();
+  const { tasks, pointLogs, todayStr, todayDow, bonusPoints, completeTask, uncompleteTask } = useStore();
   const [celebrate, setCelebrate] = useState(false);
 
   const todayTasks = tasks[todayDow] || [];
@@ -30,6 +30,12 @@ export default function TodayPage() {
   const handleCheck = useCallback((task: any) => {
     completeTask(task);
   }, [completeTask]);
+
+  const handleUncheck = useCallback((task: any) => {
+    if (window.confirm(`确定撤销「${task.name}」？将扣除已获得的 ${task.points} 积分。`)) {
+      uncompleteTask(task);
+    }
+  }, [uncompleteTask]);
 
   return (
     <>
@@ -56,6 +62,7 @@ export default function TodayPage() {
             points={task.points}
             done={doneIds.has(task.id!)}
             onCheck={() => handleCheck(task)}
+            onUncheck={() => handleUncheck(task)}
           />
         ))}
       </div>

@@ -3,12 +3,9 @@ import { useStore } from '../store/useStore';
 import { WEEKDAYS } from '../db';
 import WeekHeatmap from '../components/WeekHeatmap';
 
-const REDEEM_OPTS = [5, 10, 15, 20, 25, 30, 50];
-
 export default function PointsPage() {
   const { tasks, pointLogs, totalPoints, todayDow, todayStr, addLog } = useStore();
-  const [selRedeem, setSelRedeem] = useState(0);
-  const [customRedeem, setCustomRedeem] = useState('');
+  const [redeemAmount, setRedeemAmount] = useState('');
   const [redeemReason, setRedeemReason] = useState('');
   const [toast, setToast] = useState('');
 
@@ -47,11 +44,8 @@ export default function PointsPage() {
   };
 
   const doRedeem = async () => {
-    let amount = selRedeem;
-    const custom = parseInt(customRedeem);
-    if (!isNaN(custom) && custom >= 5) amount = custom;
-    if (!amount || amount < 5) { showToast('请选择兑换数量（最小5⭐）'); return; }
-    if (amount % 5 !== 0) { showToast('兑换额度需为5的整数倍'); return; }
+    const amount = parseInt(redeemAmount);
+    if (isNaN(amount) || amount <= 0) { showToast('请输入要兑换的积分数量'); return; }
     if (amount > totalPoints) { showToast('积分不足，当前共 ' + totalPoints + '⭐'); return; }
     if (!redeemReason.trim()) { showToast('请输入兑换原因'); return; }
     await addLog({
@@ -60,7 +54,7 @@ export default function PointsPage() {
       date: todayStr, points: -amount,
       createdAt: new Date().toISOString(),
     });
-    setSelRedeem(0); setCustomRedeem(''); setRedeemReason('');
+    setRedeemAmount(''); setRedeemReason('');
     showToast('已扣除 ' + amount + '⭐，兑换成功！');
   };
 
@@ -79,32 +73,11 @@ export default function PointsPage() {
 
       <div className="redeem-card">
         <div className="heatmap-title" style={{ marginBottom: 12 }}>🎁 积分兑换</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-          {REDEEM_OPTS.map(v => {
-            const disabled = totalPoints < v;
-            return (
-              <button
-                key={v}
-                className={`btn-sm ${selRedeem === v && !disabled ? 'selected' : ''}`}
-                style={{
-                  background: disabled ? '#f0ede8' : (selRedeem === v ? 'var(--p)' : 'var(--p)'),
-                  color: disabled ? 'var(--tl)' : '#fff',
-                  opacity: disabled ? .4 : 1,
-                  cursor: disabled ? 'default' : 'pointer',
-                }}
-                disabled={disabled}
-                onClick={() => !disabled && setSelRedeem(v)}
-              >
-                -{v}⭐
-              </button>
-            );
-          })}
-        </div>
         <div className="flex-row" style={{ marginBottom: 8 }}>
           <input
-            type="number" placeholder="自定义（最小5）" min={5} step={5}
-            value={customRedeem} onChange={e => setCustomRedeem(e.target.value)}
-            style={{ flex: 1, maxWidth: 120, padding: 10, border: '1px solid #e0dbd4', borderRadius: 10, fontSize: 13, fontFamily: 'inherit' }}
+            type="number" placeholder="兑换积分数量" min={1}
+            value={redeemAmount} onChange={e => setRedeemAmount(e.target.value)}
+            style={{ flex: 1, maxWidth: 140, padding: 10, border: '1px solid #e0dbd4', borderRadius: 10, fontSize: 13, fontFamily: 'inherit' }}
           />
           <input
             type="text" placeholder="兑换什么？" value={redeemReason}
@@ -113,7 +86,6 @@ export default function PointsPage() {
           />
         </div>
         <button className="btn btn-primary btn-block btn-sm" onClick={doRedeem}>确认兑换</button>
-        <div className="hint-text" style={{ padding: '6px 0 0', fontSize: 11 }}>最小兑换单位 5⭐</div>
       </div>
 
       <div style={{ fontSize: 13, color: 'var(--tl)', marginBottom: 10, fontWeight: 600 }}>📜 最近记录</div>

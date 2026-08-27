@@ -13,6 +13,7 @@ interface AppState {
 
   loadData: () => Promise<void>;
   completeTask: (task: Task) => Promise<void>;
+  uncompleteTask: (task: Task) => Promise<void>;
   addLog: (log: Omit<PointLog, 'id'>) => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<number>;
   updateTask: (id: number, changes: Partial<Task>) => Promise<void>;
@@ -122,6 +123,37 @@ export const useStore = create<AppState>((set, get) => ({
       pointLogs: [...get().pointLogs, { ...log, id } as PointLog],
       totalPoints: get().totalPoints + log.points,
     });
+  },
+
+  uncompleteTask: async (task: Task) => {
+    const { todayStr } = get();
+    const log = get().pointLogs.find(
+      l => l.date === todayStr && l.type === 'earn' && l.taskId === task.id
+    );
+    if (!log?.id) return;
+
+    await db.pointLogs.delete(log.id);
+    let newLogs = get().pointLogs.filter(l => l.id !== log.id);
+    let newTotal = get().totalPoints - task.points;
+
+    // 如果撤销后不再是全完成，且当天存在全完成奖励，则一并撤销奖励
+    const todayTasks = get().tasks[get().todayDow] || [];
+    const remainingDone = newLogs.filter(
+      l => l.date === todayStr && l.type === 'earn' && l.taskId !== null
+    );
+    const stillAllDone = todayTasks.length > 0 && todayTasks.every(t =>
+      remainingDone.some(l => l.taskId === t.id)
+    );
+    const bonusLog = newLogs.find(
+      l => l.date === todayStr && l.taskId === null && l.description === '全完成奖励'
+    );
+    if (!stillAllDone && bonusLog?.id) {
+      await db.pointLogs.delete(bonusLog.id);
+      newLogs = newLogs.filter(l => l.id !== bonusLog.id);
+      newTotal -= bonusLog.points;
+    }
+
+    set({ pointLogs: newLogs, totalPoints: newTotal });
   },
 
   addTask: async (task) => {

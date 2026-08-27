@@ -1,17 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface TaskItemProps {
   name: string;
   points: number;
   done: boolean;
   onCheck: () => void;
+  onUncheck?: () => void;
 }
 
-export default function TaskItem({ name, points, done, onCheck }: TaskItemProps) {
+export default function TaskItem({ name, points, done, onCheck, onUncheck }: TaskItemProps) {
   const [ripple, setRipple] = useState(false);
 
   const handleClick = () => {
-    if (done) return;
+    if (done) {
+      if (onUncheck) onUncheck();
+      return;
+    }
     setRipple(true);
     playSound();
     setTimeout(() => setRipple(false), 600);
