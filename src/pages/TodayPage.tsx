@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { WEEKDAYS } from '../db';
 import TaskItem from '../components/TaskItem';
@@ -19,12 +19,15 @@ export default function TodayPage() {
   const today = new Date();
   const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
 
-  const prevAllDone = useMemo(() => allDone, [allDone]);
+  // 检测"未完成 → 全部完成"的边沿，触发庆祝动画
+  const prevAllDoneRef = useRef(allDone);
   useEffect(() => {
-    if (allDone && !prevAllDone) {
+    if (allDone && !prevAllDoneRef.current) {
       setCelebrate(true);
-      setTimeout(() => setCelebrate(false), 3000);
+      const t = setTimeout(() => setCelebrate(false), 3000);
+      return () => clearTimeout(t);
     }
+    prevAllDoneRef.current = allDone;
   }, [allDone]);
 
   const handleCheck = useCallback((task: any) => {
